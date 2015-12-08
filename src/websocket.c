@@ -14,9 +14,11 @@
 #include <netdb.h>
 #include <sys/ioctl.h>
 #include <poll.h>
+#include <endian.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
+
 
 #define WS_KEY_SIZE 20
 
@@ -25,6 +27,12 @@
 #define WS_STATE_INITIALIZED  2
 #define WS_STATE_CONNECTED    3
 #define WS_STATE_SHAKEREQUEST 4
+
+
+/* endianess */
+const int isNetworkByteOrder() { const int bIsNetworkByteOrder = 1 == htonl(1); return bIsNetworkByteOrder; }
+#define htonll(x) (isNetworkByteOrder() ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
+#define ntohll(x) (isNetworkByteOrder() ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 
 
 struct websocket {
@@ -70,10 +78,10 @@ int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
 		header.payloadLength = payloadLength;
 		nextPart = data + 2;
 	} else if (payloadLength == 126) {
-		header.payloadLength = *(uint16_t*)&data[2]; /* TODO: needs fix! is network byte order: convert */
+		header.payloadLength = ntohs(*(uint16_t*)&data[2]);
 		nextPart = data + 2 + 2;
 	} else if (payloadLength == 127) {
-		header.payloadLength = *(uint64_t*)&data[2]; /* TODO: needs fix! is network byte order: convert */
+		header.payloadLength = ntohll(*(uint64_t*)&data[2]);
 		nextPart = data + 2 + 8;
 	}
 	header.data = nextPart;
