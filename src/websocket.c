@@ -230,7 +230,7 @@ void ws_disconnect(void* _ws) {
 	ws->state = WS_STATE_CLEAN;
 }
 
-void ws_base64_encode(char* dest, const char* source, int length) {
+void ws_base64encode(char* dest, const char* source, int length) {
 	const char base64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*/=";
 	int rest;
 	int parts;
@@ -255,13 +255,13 @@ void ws_base64_encode(char* dest, const char* source, int length) {
 		a = b = c = 64; /* '=' */
 		
 		if (rest >= 1) {
-			a = (in_iterator[0] >> 2) & 0x3f;
-			b = (in_iterator[0] << 4) & 0x30;
+			a = in_iterator[0] >> 2 & 0x3f;
+			b = in_iterator[0] << 4 & 0x30;
 			if (rest >= 2) {
-				b += (in_iterator[1] >> 4) & 0xf;
-				c = (in_iterator[1] << 2) & 0x3c;
+				b |= in_iterator[1] >> 4 & 0xf;
+				c = in_iterator[1] << 2 & 0x3c;
 				if (rest >= 3) {
-					c += (in_iterator[2] >> 6) & 0x3;
+					c |= in_iterator[2] >> 6 & 0x3;
 				}
 			}
 		}
@@ -342,7 +342,7 @@ int ws_connect(void* ws_, const char* hostname, int port, const char* uri) {
 
 	/* websocket key */
 	ws_genrandom(rawKey, WS_KEY_SIZE);
-	ws_base64_encode(key, rawKey, WS_KEY_SIZE);
+	ws_base64encode(key, rawKey, WS_KEY_SIZE);
 
 	/* calculate length of request */
 	requestLength = snprintf(0, 0, rawRequest, uri, hostname, key);
