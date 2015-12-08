@@ -70,10 +70,10 @@ int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
 		header.payloadLength = payloadLength;
 		nextPart = data + 2;
 	} else if (payloadLength == 126) {
-		header.payloadLength = *(uint16_t*)&data[2];
+		header.payloadLength = *(uint16_t*)&data[2]; /* TODO: needs fix! is network byte order: convert */
 		nextPart = data + 2 + 2;
 	} else if (payloadLength == 127) {
-		header.payloadLength = *(uint64_t*)&data[2];
+		header.payloadLength = *(uint64_t*)&data[2]; /* TODO: needs fix! is network byte order: convert */
 		nextPart = data + 2 + 8;
 	}
 	header.data = nextPart;
