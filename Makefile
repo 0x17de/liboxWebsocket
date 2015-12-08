@@ -17,4 +17,4 @@ obj/%.o: src/%.c $(DEPS)
 .PHONY: clean
 
 clean:
-	rm -f obj/*.o
+	rm -f obj/*.o client
