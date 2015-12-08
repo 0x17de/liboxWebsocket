@@ -15,12 +15,6 @@ void onClose(void* ws, void* lParam) {
 }
 
 int main() {
-	/* char in[] = "testtesttest";
-	char* out = malloc(((strlen(in)+2)/3*4)+1);
-	ws_base64encode(out, in, strlen(in));
-	puts(out);
-	free(out); */
-	
 	int handleResult;
 
 	void* ws = ws_create();

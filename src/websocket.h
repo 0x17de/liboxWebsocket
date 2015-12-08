@@ -34,7 +34,7 @@ void ws_disconnect(void* ws);
 int ws_connect(void* ws, const char* hostname, int port, const char* uri);
 
 /* UTILS */
-void ws_base64_encode(char dest[], const char source[], int length);
+void ws_base64encode(char dest[], const char source[], int length);
 int ws_readLine(struct readLineResult* res);
 
 #endif /* WEBSOCKET_H */
