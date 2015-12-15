@@ -106,9 +106,9 @@ void ws_send(void* ws_, struct ws_frame* header) {
 	headerBuffer[0] = header->finalFragment << 7 | header->opcode;
 	headerBuffer[1] = (header->masked ? 1 << 7 : 0) | payloadField;
 	if (payloadField == 126) {
-		*(uint16_t*)&headerBuffer[2] = header->payloadLength;
+		*(uint16_t*)&headerBuffer[2] = htons(header->payloadLength);
 	} else if (payloadField == 127) {
-		*(uint64_t*)&headerBuffer[2] = header->payloadLength;
+		*(uint64_t*)&headerBuffer[2] = htonll(header->payloadLength);
 	}
 
 	/* if masked: generate new mask key and mask data */
