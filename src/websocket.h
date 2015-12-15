@@ -39,7 +39,8 @@ void ws_free(void* ws);
 
 int ws_handle(void* ws, int timeout);
 void ws_send(void* ws_, struct ws_frame* header);
-void ws_sendString(void* ws_, char* text, uint64_t length);
+void ws_sendText(void* ws_, char* text, uint64_t length);
+void ws_sendData(void* ws_, char* data, uint64_t length);
 
 void ws_setDataCallback(void* ws, ws_dataCallback onData, void* lParam);
 void ws_setCloseCallback(void* ws, ws_closeCallback onClose, void* lParam);

@@ -61,14 +61,26 @@ void ws_free(void* ws) {
 	free(ws);
 }
 
-void ws_sendString(void* ws_, char* text, uint64_t length) {
+void ws_sendText(void* ws_, char* text, uint64_t length) {
+	struct ws_frame header = {0};
+
+	header.finalFragment = 1;
+	header.opcode = WS_OP_TEXT;
+	header.masked = 1;
+	header.payloadLength = length;
+	header.data = text;
+
+	ws_send(ws_, &header);
+}
+
+void ws_sendData(void* ws_, char* data, uint64_t length) {
 	struct ws_frame header = {0};
 
 	header.finalFragment = 1;
 	header.opcode = WS_OP_BINARY;
-	header.masked = 0;
+	header.masked = 1;
 	header.payloadLength = length;
-	header.data = text;
+	header.data = data;
 
 	ws_send(ws_, &header);
 }
@@ -123,8 +135,12 @@ void ws_send(void* ws_, struct ws_frame* header) {
 	}
 
 	/* send data */
-	send(ws->socket, headerBuffer, headerSize, MSG_MORE);
-	send(ws->socket, header->data, header->payloadLength, 0);
+	if (header->payloadLength > 0) {
+		send(ws->socket, headerBuffer, headerSize, MSG_MORE);
+		send(ws->socket, header->data, header->payloadLength, 0);
+	} else {
+		send(ws->socket, headerBuffer, headerSize, 0);
+	}
 
 	/* free */
 	free(headerBuffer);
@@ -174,7 +190,10 @@ int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
 		ws_disconnect(ws);
 		ws->onClose(ws, ws->onCloseLParam);
 	} else if (header.opcode == 0x9) { /* ping */
-		/* TODO: ping */
+		header.opcode = WS_OP_PONG;
+		header.payloadLength = 0;
+		ws_send(ws, &header);
+		/* TODO: verify ping */
 	} else if (header.opcode == 0xa) { /* pong */
 		/* TODO: pong */
 	} else { /* reserved */

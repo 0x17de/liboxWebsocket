@@ -26,8 +26,8 @@ int main() {
 		puts("Connected.\n");
 		while (handleResult = ws_handle(ws, 1000), handleResult >= 0) {
 			if (handleResult > 0) { /* anything received */
-				char *s = strndup("send", 5); /* data must be mutable if masking enabled */
-				ws_sendString(ws, s, 5); /* answer with test string */
+				char *s = strndup("send", 4); /* data must be mutable if masking enabled */
+				ws_sendText(ws, s, 4); /* answer with test string */
 				free(s);
 			}
 		}
