@@ -21,6 +21,8 @@
 
 
 #define WS_KEY_SIZE 20
+#define WS_SEC_WEBSOCKET_VERSION "13"
+
 
 #define WS_STATE_CLEAN        0
 #define WS_STATE_DISCONNECTED 1
@@ -59,17 +61,85 @@ void ws_free(void* ws) {
 	free(ws);
 }
 
+void ws_sendString(void* ws_, char* text, uint64_t length) {
+	struct ws_frame header = {0};
+
+	header.finalFragment = 1;
+	header.opcode = WS_OP_BINARY;
+	header.masked = 0;
+	header.payloadLength = length;
+	header.data = text;
+
+	ws_send(ws_, &header);
+}
+
+void ws_send(void* ws_, struct ws_frame* header) {
+	struct websocket* ws;
+	int headerSize;
+	char* headerBuffer;
+	int payloadField;
+	uint64_t maskIndex;
+	
+	ws = ws_;
+	headerSize = 2;
+
+	/* calculate header size */
+	if (header->payloadLength < 126) {
+		/* headerSize same */
+		payloadField = header->payloadLength;
+	} else if (header->payloadLength <= 0xffff) {
+		headerSize += 2;
+		payloadField = 126;
+	} else { /* header->payloadLength uint64_t */
+		headerSize += 4;
+		payloadField = 127;
+	}
+
+	if (header->masked)
+		headerSize += 4; /* masking */
+
+	/* alloc buffer */
+	headerBuffer = malloc(headerSize);
+	assert(headerBuffer != 0);
+
+	/* write data to buffer */
+	headerBuffer[0] = header->finalFragment << 7 | header->opcode;
+	headerBuffer[1] = (header->masked ? 1 << 7 : 0) | payloadField;
+	if (payloadField == 126) {
+		*(uint16_t*)&headerBuffer[2] = header->payloadLength;
+	} else if (payloadField == 127) {
+		*(uint64_t*)&headerBuffer[2] = header->payloadLength;
+	}
+
+	/* if masked: generate new mask key and mask data */
+	if (header->masked) {
+		char maskingKey[4];
+		ws_genrandom(maskingKey, 4);
+		memcpy(&headerBuffer[headerSize - 4], maskingKey, 4);
+
+		/* mask data */
+		for (maskIndex = 0; maskIndex < header->payloadLength; ++maskIndex)
+			header->data[maskIndex] ^= maskingKey[maskIndex % 4];
+	}
+
+	/* send data */
+	send(ws->socket, headerBuffer, headerSize, MSG_MORE);
+	send(ws->socket, header->data, header->payloadLength, 0);
+
+	/* free */
+	free(headerBuffer);
+}
+
 int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
-	struct ws_header header;
+	struct ws_frame header;
 	char* nextPart;
 	unsigned int payloadLength;
-	size_t unmaskIndex;
-	uint8_t mask;
+	uint64_t unmaskIndex;
 	char maskingKey[4];
 
 	header.finalFragment = data[0] >> 7 & 0x1;
 	header.opcode = data[0] & 0xf;
-	mask = data[1] >> 7 & 0x1;
+	header.masked = data[1] >> 7 & 0x1;
 	payloadLength = data[1] & 0x7f;
 
 	assert(payloadLength <= 127);
@@ -86,7 +156,7 @@ int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
 	}
 	header.data = nextPart;
 
-	if (mask != 0) {
+	if (header.masked != 0) {
 		memcpy(maskingKey, nextPart, 4);
 		header.data += 4; /* mask */
 
@@ -95,7 +165,21 @@ int _ws_handle_websocket(struct websocket* ws, char* data, int dataLength) {
 			header.data[unmaskIndex] ^= maskingKey[unmaskIndex % 4];
 	}
 
-	ws->onData(ws, &header, ws->onDataLParam);
+	if (header.opcode == 0x0) { /* continuation frame */
+		ws->onData(ws, &header, ws->onDataLParam);
+	} else if (header.opcode <= 0x7) { /* data received */
+		ws->onData(ws, &header, ws->onDataLParam);
+	} else if (header.opcode == 0x8) { /* connection close */
+		ws->state = WS_STATE_DISCONNECTED;
+		ws_disconnect(ws);
+		ws->onClose(ws, ws->onCloseLParam);
+	} else if (header.opcode == 0x9) { /* ping */
+		/* TODO: ping */
+	} else if (header.opcode == 0xa) { /* pong */
+		/* TODO: pong */
+	} else { /* reserved */
+		/* TODO: reserved */
+	}
 
 	return nextPart + payloadLength - data; /* return processed data count */
 }
@@ -296,7 +380,7 @@ int ws_connect(void* ws_, const char* hostname, int port, const char* uri) {
 	ssize_t sendResult;
 	char rawKey[WS_KEY_SIZE];
 	char key[((WS_KEY_SIZE+2)/3*4)+1];
-	
+
 	ws = ws_;
 
 	if (ws->state != WS_STATE_CLEAN)
@@ -324,7 +408,7 @@ int ws_connect(void* ws_, const char* hostname, int port, const char* uri) {
 			memcpy(&sin4.sin_addr.s_addr, *hostAddress, 4);
 		if (host->h_addrtype == AF_INET6)
 			memcpy(&sin6.sin6_addr.s6_addr, *hostAddress, 16);
-		
+
 		connectResult = connect(s, saddr, sizeof(*saddr));
 		if (connectResult == 0) break; /* OK */
 
@@ -336,7 +420,7 @@ int ws_connect(void* ws_, const char* hostname, int port, const char* uri) {
 		"GET %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"Upgrade: websocket\r\n"
-		"Sec-WebSocket-Version: 13\r\n"
+		"Sec-WebSocket-Version: " WS_SEC_WEBSOCKET_VERSION "\r\n"
 		"Sec-WebSocket-Key: %s\r\n"
 		"\r\n";
 

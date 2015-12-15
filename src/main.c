@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 
-void onData(void* ws, struct ws_header* header, void* lParam) {
+void onData(void* ws, struct ws_frame* header, void* lParam) {
 	char* str = strndup(header->data, header->payloadLength);
 	printf("Data: %s\n", str);
 	free(str);
@@ -24,7 +24,13 @@ int main() {
 	puts("Connecting.\n");
 	if (ws_connect(ws, "localhost", 12321, "/") == 0) {
 		puts("Connected.\n");
-		while (handleResult = ws_handle(ws, 1000), handleResult >= 0);
+		while (handleResult = ws_handle(ws, 1000), handleResult >= 0) {
+			if (handleResult > 0) {
+				char *s = strndup("send", 5);
+				ws_sendString(ws, s, 5);
+				free(s);
+			}
+		}
 	} else {
 		puts("Error connecting.\n");
 	}
