@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([oxWebsocket], [0.1], [git@0x17.de])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 LT_INIT([shared])
 AC_CONFIG_SRCDIR([src/websocket.c])
 AC_CONFIG_MACRO_DIRS([m4])
