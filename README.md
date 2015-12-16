@@ -4,6 +4,9 @@ A simple to use websocket library written in C.
 OpenSSL will be supported. Currently a library is generated via automake.
 Sending pings from time to time is not handled yet (need to look up docs first); Pongs are handled.
 
+## Source Releases
+https://www.0x17.de/release/oxwebsocket/
+
 ## Setup via Git
 ``````
 git clone https://github.com/0x17de/liboxWebsocket
