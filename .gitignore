@@ -3,3 +3,5 @@ autom4te.cache
 client
 test
 *.swp
+*.lo
+*.la
