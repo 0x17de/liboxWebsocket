@@ -380,7 +380,7 @@ void ws_base64encode(char* dest, const char* source, int length) {
 void ws_genrandom(char* dest, int length) {
 	int fd_random = open("/dev/urandom", O_RDONLY);
 	assert(fd_random != -1);
-	read(fd_random, dest, length);
+	assert(length == read(fd_random, dest, length));
 	close(fd_random);
 }
 
