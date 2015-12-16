@@ -317,13 +317,19 @@ void ws_setCloseCallback(void* _ws, ws_closeCallback onClose, void* lParam) {
 	ws->onCloseLParam = lParam;
 }
 
+void _ws_sendDisconnect(struct websocket* ws) {
+	struct ws_frame header = {0};
+	header.finalFragment = 1;
+	header.opcode = WS_OP_CLOSE;
+	header.payloadLength = 0;
+	ws_send(ws, &header);
+}
+
 void ws_disconnect(void* _ws) {
 	struct websocket* ws = _ws;
 
 	if (ws->state == WS_STATE_CONNECTED) {
-		/*
-		 * TODO: shake it off
-		 */
+		_ws_sendDisconnect(ws);
 	}
 	if (ws->state != WS_STATE_CLEAN) {
 		close(ws->socket);
